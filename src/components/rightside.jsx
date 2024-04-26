@@ -1,7 +1,8 @@
-sessionHistory = {// on app open, pull from server for previous chat history. On selecting newchat, create a chatid,{nextprmoptid:0, chathistory:{}} pair. Need to make sure the chatid is unique even when no connection with server. use timestemp as seed
+const sessionHistory = {// on app open, pull from server for previous chat history. On selecting newchat, create a chatid,{nextprmoptid:0, chathistory:{}} pair. Need to make sure the chatid is unique even when no connection with server. use timestemp as seed
     chat:{
         1: {
-            nextprmoptid:1, chathistory:{0:{ promptcontent:'What is this',botresponse:{0:['in english communication, there is the need for a quick reference to an object in discussion. the word this is used as such reference.\nIf you are meant to seek help identifying an object from an image, please upload the image.'], 1:['error', 'this is the end'], 2:['this is not the end']}}}
+            nextprmoptid:2, chathistory:{0:{ promptcontent:'What is this',botresponse:{0:['in english communication, there is the need for a quick reference to an object in discussion. the word this is used as such reference.\nIf you are meant to seek help identifying an object from an image, please upload the image.'], 1:['error', 'this is the end'], 2:['this is not the end']}},
+            1:{ promptcontent:'What is that',botresponse:{0:['in english communication, there is the need for a quick reference to a distant object in discussion. the word that is used as such reference.\nIf you are meant to seek help identifying an object from an image, please upload the image.'], 1:['that is funny'], 2:['that is a word in english']}}}
         },
         2:{nextprmoptid:0, chathistory:{}}
     },
@@ -23,16 +24,43 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
     //Got result or error, display it 
 
     //check the latest prompt id, if matches, display regenerate option
-    const [content, setContent] =useState('Initial state')
-    function generateContent(){
+    const [content, setContent] = React.useState('Initial state')
+
+    React.useEffect(() => {
+        //setContent('Analyzing...')
+        if (content === 'Initial state'){
+            if ( sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].length > 0){
+                setContent('bot id '+abotid+' got this: '+sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].at(-1))
+            }
+            else{
+                setContent('Analyzing...')
+            }
+        }
+        else if (content === 'Analyzing...'){
+            setContent('Analyzing...')
+            const timer = setTimeout(() => {
+                    setContent('10 seconds have passed!');
+                    let prompt = sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']
+                    let result = 'response from bot '+botmethod[abotid]+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
+                    sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push(result)
+                    setContent(result)
+                }, 10000);  // 10000 milliseconds = 10 seconds
+        
+                // Cleanup function to clear the timeout if the component unmounts early
+            return () => clearTimeout(timer);
+        }
+
+    }, [content]) // Empty dependency array means this effect runs only once after the initial render
+     
+    /*function generateContent(){
         if (content != 'Analyzing...'){
-        useEffect(() => {
+            React.useEffect(() => {
             setContent('Analyzing...')
             const timer = setTimeout(() => {
                 setContent('10 seconds have passed!');
-                let prompt = sessionHistory[chat][chatid][chathistory][promptcontent]
+                let prompt = sessionHistory['chat'][chatid]['chathistory']['promptcontent']
                 let result = 'response from bot '+botmethod[abotid]+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
-                sessionHistory[chat][chatid][chathistory][botresponse][abotid].push(result)
+                sessionHistory['chat'][chatid]['chathistory']['botresponse'][abotid].push(result)
                 setContent(result)
             }, 10000);  // 10000 milliseconds = 10 seconds
     
@@ -41,16 +69,17 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
         }, []) // Empty dependency array means this effect runs only once after the initial render
         }
 
-    }
-    if (sessionHistory[chat][chatid][chathistory][botresponse][abotid].length === 0){
-        generateContent()
-    }
+    }*/
+    console.log('bot id:'+abotid)
+    console.log(content)
+    //console.log(sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].length)
+    //console.log(sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid])
     let responseMarkup = <p>{content}</p>
     if (apromptid == nextprmoptid - 1){
         responseMarkup = (
             <div>
                 {content}
-                <button onClick={generateContent}>Regenerate</button>
+                <button onClick={()=>setContent('Analyzing...')}>Regenerate</button>
             </div>
         )
     }
@@ -61,9 +90,9 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
     }
     return responseMarkup
 }
-function inputComp({generatePrompt}){
-    const [inputValue, setInputValue] = useState('');  // State to hold the input value
-    //const [collectedData, setCollectedData] = useState([]);  // State to store collected inputs
+function InputComp({generatePrompt}){
+    const [inputValue, setInputValue] = React.useState('');  // State to hold the input value
+    //const [collectedData, setCollectedData] = React.useState([]);  // State to store collected inputs
 
     const handleInputChange = (event) => {
         setInputValue(event.target.value);  // Update state with current input
@@ -72,7 +101,7 @@ function inputComp({generatePrompt}){
     const handleButtonClick = () => {
         if (inputValue.trim() !== '') {  // Check if the input is not just whitespace
             //setCollectedData(prevData => [...prevData, inputValue]);  // Add input to collected data
-            if (sessionHistory[bot].length === 0){
+            if (sessionHistory['bot'].length === 0){
                 alert("No bot is configured! Please configure a bot first before continue!")
             }
             else{
@@ -91,73 +120,46 @@ function inputComp({generatePrompt}){
                 placeholder="Enter some text"
             />
             <button onClick={handleButtonClick}>Collect Input</button>
-            <div>
-                <h3>Collected Inputs:</h3>
-                <ul>
-                    {collectedData.map((data, index) => (
-                        <li key={index}>{data}</li>  // Display collected data
-                    ))}
-                </ul>
-            </div>
+            
         </div>
     );
 
 }
-function promptComp({thisprompt=''}){
-    return (<p style="color: blue; font-size: 16px; font-family: Arial, sans-serif;">{'this is the prmopt: '+thisprompt}</p>)
+function PromptComp({thisprompt=''}){
+    return (<p style={{ color: 'blue', fontSize: '16px', fontFamily: 'Arial, sans-serif' }}>{'this is the prmopt: '+thisprompt}</p>)
 }
-function IndiChatComp({chatid=2}){
 
+
+function IndiChatComp({chatid=2}){
+    console.log(sessionHistory)
     //var nextPromptID = 0
-    const [nextPromptID, setNextPromptID] = useState(sessionHistory[chat][chatid][nextprmoptid])
-    const [nextPrompt, setNextPrompt] = useState('')
-    const [inoutpair, setNextPair] = useState(Object.entries(sessionHistory[chat][chatid][chathistory]).map(([key, value])=>[value[promptcontent], key, chatid, nextPromptID, Object.keys(value[botresponse])]))
+    const [nextPromptID, setNextPromptID] = React.useState(sessionHistory['chat'][chatid]['nextprmoptid'])
+    const [nextPrompt, setNextPrompt] = React.useState('')
+    const [inoutpair, setNextPair] = React.useState(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid, nextPromptID, Object.keys(value['botresponse'])]))
     const collectNextPrompt=(thePrompt)=>{
         setNextPrompt(thePrompt)
-        let temp_nextPrompt = {promptcontent: nextPrompt, botresponse:sessionHistory[bot].reduce((acc, key) => ({ ...acc, [key]: [] }), {})}
-        sessionHistory[chat][chatid][chathistory][nextPromptID] = temp_nextPrompt
-        
-        setNextPair([...inoutpair,[nextPrompt, nextPromptID, chatid, nextPromptID+1, sessionHistory[bot]]])
+        let temp_nextPrompt = {promptcontent: thePrompt, botresponse:sessionHistory['bot'].reduce((acc, key) => ({ ...acc, [key]: [] }), {})}
+        sessionHistory['chat'][chatid]['chathistory'][nextPromptID] = temp_nextPrompt
+        console.log("the next prompt: "+thePrompt)
+        console.log(nextPrompt)
+        setNextPair([...inoutpair,[thePrompt, nextPromptID, chatid,  sessionHistory['bot']]])
         setNextPromptID(nextPromptID+1)
 
     }
+    console.log('here is the debug output')
     console.log(inoutpair)
-    return (inoutpair.map((theprompt, thepromptid, currentchatid, thenextpromptid, botids)=>(
+    return (
         <div>
-            <promptComp thisprompt={theprompt}/>
+        {inoutpair.map(([theprompt, thepromptid, currentchatid,  botids])=>(
+        <div key={thepromptid}>
+            <PromptComp  thisprompt={theprompt}/>
 
             {botids.map((thebotid)=>(
-                <ResponseComp apromptid={thepromptid} abotid={thebotid} chatid={currentchatid} nextprmoptid={thenextpromptid}  />
+                <ResponseComp key={thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={currentchatid} nextprmoptid={nextPromptID}  />
             ))}
         
-        <inputComp generatePrompt={collectNextPrompt} />
+        
         </div>
-    )))
-    /*// this if else block grabbed all the [prompt {botid: latest response}] from chathistory for the current chat. This will be then used to populate the individual chat section
-    //var initialChat = []
-    const [initialChat, setInitialChat] = useState([])
-    const pushToChat=(newpair)=>{
-        setInitialChat([...initialChat, newpair])
-    }
-    if (chatid in sessionHistory['chat']){
-        let initialChat_temp = sessionHistory['chat'][chatid]
-        //nextPromptID=initialChat_temp[nextprmoptid]
-        setNextPromptID(initialChat_temp[nextprmoptid])
-        initialChat_temp[chathistory].forEach(promptid=>{
-            var promptresponse = initialChat_temp[chathistory][promptid][promptcontent]
-            let response_temp = {}
-            Object.keys(initialChat_temp[chathistory][promptid][botresponse]).forEach(key=>{
-                response_temp.key=promptPair[botresponse][key].at(-1)
-            })
-            promptresponse.push(response_temp)
-            //initialChat.push(promptresponse)
-            pushToChat( promptresponse)
-        }
-        )
-    }
-    else{
-
-    }*/
-
-
-}
+    ))}
+    <InputComp generatePrompt={collectNextPrompt} /></div>
+)
