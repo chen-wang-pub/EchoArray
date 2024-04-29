@@ -1,3 +1,35 @@
+const Dialog = ({ isOpen, close, children }) => {
+    if (!isOpen) return null;
+
+    const overlayStyle = {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000, // High z-index to ensure it covers the whole screen
+    };
+
+    const contentStyle = {
+        background: 'white',
+        padding: '20px',
+        borderRadius: '5px',
+        zIndex: 1001, // Ensures the content is above the overlay
+    };
+
+    return (
+        <div style={overlayStyle} onClick={close}>
+            <div style={contentStyle} onClick={e => e.stopPropagation()}>
+                {children}
+                <button onClick={close}>Close</button>
+            </div>
+        </div>
+    );
+};
 function SettingComp(){
     const [isDialogOpen, setDialogOpen] = React.useState(false);
     const [botApis, setBotApis] = React.useState(Object.entries(botmethod).map(([key, value])=>({...value, botid:key})));
