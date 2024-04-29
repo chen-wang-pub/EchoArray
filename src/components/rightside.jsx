@@ -1,19 +1,21 @@
 const sessionHistory = {// on app open, pull from server for previous chat history. On selecting newchat, create a chatid,{nextprmoptid:0, chathistory:{}} pair. Need to make sure the chatid is unique even when no connection with server. use timestemp as seed
     chat:{
+        0:{nextprmoptid:0, chathistory:{}},// when open new chat, initialize it as this chat id 0. When the first prompt is submitted, switch it to the next avaialbe chat id
         1: {
             nextprmoptid:2, chathistory:{0:{ promptcontent:'What is this',botresponse:{0:['in english communication, there is the need for a quick reference to an object in discussion. the word this is used as such reference.\nIf you are meant to seek help identifying an object from an image, please upload the image.'], 1:['error', 'this is the end'], 2:['this is not the end']}},
             1:{ promptcontent:'What is that',botresponse:{0:['in english communication, there is the need for a quick reference to a distant object in discussion. the word that is used as such reference.\nIf you are meant to seek help identifying an object from an image, please upload the image.'], 1:['that is funny'], 2:['that is a word in english']}}}
         },
-        2:{nextprmoptid:0, chathistory:{}}
+        2:{nextprmoptid:1, chathistory:{0:{promptcontent:'Have we met before', botresponse:{2:['I do not know what you are talking about'], 4:['no, cuz I am you']}}}},
+
     },
     bot:[0,2]
 }
-botmethod = {
-    0:'goobot',
-    1:'opebot',
-    2:'clobot',
-    3:'metbot',
-    4:'futbot'
+const botmethod = {
+    0:{name:'goobot',apikey:''},
+    1:{name:'opebot',apikey:''},
+    2:{name:'clabot',apikey:''},
+    3:{name:'metbot',apikey:''},
+    4:{name:'cusbot',apikey:''}
 }
 function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
     /* in the next patch, just put the response that can be regenerated into a */
