@@ -8,7 +8,8 @@ const sessionHistory = {// on app open, pull from server for previous chat histo
         2:{nextprmoptid:1, chathistory:{0:{promptcontent:'Have we met before', botresponse:{2:['I do not know what you are talking about'], 4:['no, cuz I am you']}}}},
 
     },
-    bot:[0,2]
+    bot:[0,2],
+    thischat:0
 }
 const botmethod = {
     0:{name:'goobot',apikey:''},
