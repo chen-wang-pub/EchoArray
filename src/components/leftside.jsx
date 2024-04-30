@@ -30,11 +30,11 @@ const Dialog = ({ isOpen, close, children }) => {
         </div>
     );
 };
-function SettingComp(){
+function SettingComp({chatSnippet, updateChatSnippet}){
     const [isDialogOpen, setDialogOpen] = React.useState(false);
     const [botApis, setBotApis] = React.useState(Object.entries(botmethod).map(([key, value])=>({...value, botid:key})));
     //[{ name: 'goobot', apikey: '', botid: '0' }, { name: 'opebot', apikey: '', botid: '1' }, { name: 'clabot', apikey: '', botid: '2' },{ name: 'metbot', apikey: '', botid: '3' },{ name: 'cusbot', apikey: '', botid: '4' }]
-    const [chatSnippet, setChatSnippet] = React.useState(Object.entries(sessionHistory['chat']).map(([key,value])=>(key>0? {chatid:key, firstprompt:value['chathistory'][0]['promptcontent']}: {chatid:key})).slice(1))
+    
     const handleBotApichange = (event, index)=>{
         const {key, value} = event.target
         const updatedBotApis = botApis.map((bot, i)=>{
@@ -75,7 +75,7 @@ function SettingComp(){
             
             alert("Action confirmed!");
             delete sessionHistory['chat'][parseInt(chatid)]
-            setChatSnippet(Object.entries(sessionHistory['chat']).map(([key,value])=>(key>0? {chatid:key, firstprompt:value['chathistory'][0]['promptcontent']}: {chatid:key})).slice(1))
+            updateChatSnippet(Object.entries(sessionHistory['chat']).map(([key,value])=>(key>0? {chatid:key, firstprompt:value['chathistory'][0]['promptcontent']}: {chatid:key})).slice(1))
         } else {
             // User clicked 'Cancel'
             alert("Action canceled!");
@@ -83,8 +83,8 @@ function SettingComp(){
     }
 
     return (
-        <div className="App">
-            <button onClick={() => setDialogOpen(true)}>Open Dialog</button>
+        <div>
+            <button onClick={() => setDialogOpen(true)}>Setting</button>
             <Dialog isOpen={isDialogOpen} close={() => {
                 setDialogOpen(false)
                 setBotApis(Object.entries(botmethod).map(([key, value])=>({...value, botid:key})))
@@ -109,4 +109,37 @@ function SettingComp(){
             </Dialog>
         </div>
     );
+}
+
+function SideSection(){
+    const [selectedChat, setSelectedChat] = React.useState(0)
+    const [chatSnippet, setChatSnippet] = React.useState(Object.entries(sessionHistory['chat']).map(([key,value])=>(key>0? {chatid:key, firstprompt:value['chathistory'][0]['promptcontent']}: {chatid:key})).slice(1))
+
+    const updateChatSnippet = (updatedSnipped)=>{
+        setChatSnippet(updatedSnipped)
+        if (!(selectedChat in sessionHistory['chat'])){
+            setSelectedChat(0)
+        }
+    }
+    const handleNewChat = ()=>{
+        setSelectedChat(0)
+    }
+    const handleSelection=(chatid)=>{
+        setSelectedChat(parseInt(chatid))
+    }
+    const claimSelectedChat=(prediction)=>{
+        return selectedChat === parseInt(prediction)? true:false
+    }
+
+
+    return ( <div>
+                {chatSnippet.map((snippet)=>(
+                        <div key={snippet['chatid']}>
+                        <button type="button" style={claimSelectedChat(snippet['chatid'])? {textDecoration: 'underline'}:{}} onClick={()=>handleSelection(snippet['chatid'])}>{'chat id '+snippet['chatid']+' content:'+snippet['firstprompt']}</button>
+                        </div>
+                    ))}
+                <div key='newchat'><button type='button' style={claimSelectedChat(0)? {textDecoration: 'underline'}:{}} onClick={()=>handleNewChat()}>New Chat</button></div>
+                <SettingComp updateChatSnippet={updateChatSnippet} chatSnippet={chatSnippet}/>
+            </div>
+    )
 }
