@@ -110,9 +110,7 @@ function SettingComp({chatSnippet, updateChatSnippet}){
         </div>
     );
 }
-
-function SideSection(){
-    const [selectedChat, setSelectedChat] = React.useState(0)
+function SideSection({selectedChat, setSelectedChat}){
     const [chatSnippet, setChatSnippet] = React.useState(Object.entries(sessionHistory['chat']).map(([key,value])=>(key>0? {chatid:key, firstprompt:value['chathistory'][0]['promptcontent']}: {chatid:key})).slice(1))
 
     const updateChatSnippet = (updatedSnipped)=>{
@@ -142,4 +140,24 @@ function SideSection(){
                 <SettingComp updateChatSnippet={updateChatSnippet} chatSnippet={chatSnippet}/>
             </div>
     )
+}
+
+function RootComp(){
+    const [selectedChat, setSelectedChat] = React.useState(0)
+    const [uuid, setID]  = React.useState(0)
+    const selectChat=(chatid)=>{
+        setSelectedChat(chatid)
+        setID(uuid+1)
+        console.log("chat id change in root component"+chatid)
+    }
+
+    return (
+        <div style={{display:'flex'}}>
+            <SideSection selectedChat={selectedChat} setSelectedChat={selectChat}/>
+            <IndiChatComp key={uuid} chatid={selectedChat}/>
+
+        </div>
+    )
+
+
 }
