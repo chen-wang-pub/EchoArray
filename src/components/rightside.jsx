@@ -18,7 +18,7 @@ const botmethod = {
     3:{name:'metbot',apikey:''},
     4:{name:'cusbot',apikey:''}
 }
-function ResponseComp({apromptid, abotid, chatid, nextprmoptid, signal}){
+function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
     /* in the next patch, just put the response that can be regenerated into a */
     //get response via bot api using prmopt (get previous chat history via bot id and promptid in root component or context)
 
@@ -31,7 +31,7 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid, signal}){
 
     React.useEffect(() => {
         //setContent('Analyzing...')
-        if (!signal) return;
+
 
         if (content === 'Initial state'){
             if ( sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].length > 0){
@@ -61,7 +61,7 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid, signal}){
             }
         }
 
-    }, [content, signal]) // Empty dependency array means this effect runs only once after the initial render
+    }, [content]) // Empty dependency array means this effect runs only once after the initial render
      
     /*function generateContent(){
         if (content != 'Analyzing...'){
@@ -143,38 +143,10 @@ function PromptComp({thisprompt=''}){
 
 function IndiChatComp({chatid}){
     console.log(sessionHistory)
-    const [controller, setController] = React.useState(null);
     //var nextPromptID = 0
     const [nextPromptID, setNextPromptID] = React.useState(sessionHistory['chat'][chatid]['nextprmoptid'])
     const [nextPrompt, setNextPrompt] = React.useState('')
     const [inoutpair, setNextPair] = React.useState(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid,  Object.keys(value['botresponse'])]))
-    React.useEffect(() => {
-        // Initialize the controller
-        setController(new AbortController());
-
-        // Cleanup function to abort fetch when component unmounts
-        return () => {
-            if (controller) {
-                controller.abort();
-            }
-        };
-    }, []);
-    const handleAbort = () => {
-        if (controller) {
-            controller.abort();
-            console.log('Fetch aborted by parent');
-            // Re-initialize the controller if needed again after aborting
-            
-        }
-    };
-    React.useEffect(()=>{
-
-        handleAbort()
-        setNextPromptID(sessionHistory['chat'][chatid]['nextprmoptid'])
-        setNextPrompt('')
-        setNextPair(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid,  Object.keys(value['botresponse'])]))
-        console.log('effect has been used by '+chatid)
-    }, [chatid])
 
     const collectNextPrompt=(thePrompt)=>{
         setNextPrompt(thePrompt)
@@ -198,7 +170,7 @@ function IndiChatComp({chatid}){
             {console.log('populating bots botids is:'+botids)}
             {console.log('still in the populating process',theprompt, thepromptid, currentchatid,  botids)}
             {botids.map((thebotid)=>(
-                <ResponseComp  key={chatid+'_'+thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={chatid} nextprmoptid={nextPromptID} signal={controller ? controller.signal : null} />
+                <ResponseComp  key={chatid+'_'+thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={chatid} nextprmoptid={nextPromptID} />
             ))}
         
         
