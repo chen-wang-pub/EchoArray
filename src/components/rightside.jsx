@@ -18,7 +18,7 @@ const botmethod = {
     3:{name:'metbot',apikey:''},
     4:{name:'cusbot',apikey:''}
 }
-function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
+function ResponseComp({apromptid, abotid, chatid, nextprmoptid, signal}){
     /* in the next patch, just put the response that can be regenerated into a */
     //get response via bot api using prmopt (get previous chat history via bot id and promptid in root component or context)
 
@@ -31,6 +31,8 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
 
     React.useEffect(() => {
         //setContent('Analyzing...')
+        if (!signal) return;
+
         if (content === 'Initial state'){
             if ( sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].length > 0){
                 setContent('bot id '+abotid+' got this: '+sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].at(-1))
@@ -41,19 +43,25 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
         }
         else if (content === 'Analyzing...'){
             setContent('Analyzing...')
+            sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push('generating new response')
             const timer = setTimeout(() => {
                     setContent('10 seconds have passed!');
                     let prompt = sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']
-                    let result = 'response from bot '+botmethod[abotid]+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
+                    let result = 'response from bot '+botmethod[abotid]['name']+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
+                    sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].pop()
                     sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push(result)
                     setContent(result)
+                    console.log('from asnyc:  '+result)
                 }, 10000);  // 10000 milliseconds = 10 seconds
         
                 // Cleanup function to clear the timeout if the component unmounts early
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(timer)
+                console.log('aborted in'+ 'response from bot '+botmethod[abotid]['name']+' for prompt ' +sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid)
+            }
         }
 
-    }, [content]) // Empty dependency array means this effect runs only once after the initial render
+    }, [content, signal]) // Empty dependency array means this effect runs only once after the initial render
      
     /*function generateContent(){
         if (content != 'Analyzing...'){
@@ -73,14 +81,14 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
         }
 
     }*/
-    console.log('bot id:'+abotid)
-    console.log(content)
+    //console.log('bot id:'+abotid)
+    //console.log(content)
     //console.log(sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].length)
     //console.log(sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid])
     let responseMarkup = <p>{content}</p>
     if (apromptid == nextprmoptid - 1){
         responseMarkup = (
-            <div>
+            <div key={chatid+'_'+apromptid+'_'+abotid}>
                 {content}
                 <button onClick={()=>setContent('Analyzing...')}>Regenerate</button>
             </div>
@@ -88,7 +96,7 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
     }
     else{
         responseMarkup = (
-            <div>{content}</div>
+            <div key={chatid+'_'+apromptid+'_'+abotid}>{content}</div>
         )
     }
     return responseMarkup
@@ -133,32 +141,64 @@ function PromptComp({thisprompt=''}){
 }
 
 
-function IndiChatComp({chatid=2}){
+function IndiChatComp({chatid}){
     console.log(sessionHistory)
+    const [controller, setController] = React.useState(null);
     //var nextPromptID = 0
     const [nextPromptID, setNextPromptID] = React.useState(sessionHistory['chat'][chatid]['nextprmoptid'])
     const [nextPrompt, setNextPrompt] = React.useState('')
-    const [inoutpair, setNextPair] = React.useState(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid, nextPromptID, Object.keys(value['botresponse'])]))
+    const [inoutpair, setNextPair] = React.useState(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid,  Object.keys(value['botresponse'])]))
+    React.useEffect(() => {
+        // Initialize the controller
+        setController(new AbortController());
+
+        // Cleanup function to abort fetch when component unmounts
+        return () => {
+            if (controller) {
+                controller.abort();
+            }
+        };
+    }, []);
+    const handleAbort = () => {
+        if (controller) {
+            controller.abort();
+            console.log('Fetch aborted by parent');
+            // Re-initialize the controller if needed again after aborting
+            
+        }
+    };
+    React.useEffect(()=>{
+
+        handleAbort()
+        setNextPromptID(sessionHistory['chat'][chatid]['nextprmoptid'])
+        setNextPrompt('')
+        setNextPair(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid,  Object.keys(value['botresponse'])]))
+        console.log('effect has been used by '+chatid)
+    }, [chatid])
+
     const collectNextPrompt=(thePrompt)=>{
         setNextPrompt(thePrompt)
         let temp_nextPrompt = {promptcontent: thePrompt, botresponse:sessionHistory['bot'].reduce((acc, key) => ({ ...acc, [key]: [] }), {})}
         sessionHistory['chat'][chatid]['chathistory'][nextPromptID] = temp_nextPrompt
+        sessionHistory['chat'][chatid]['nextprmoptid'] = nextPromptID+1
         console.log("the next prompt: "+thePrompt)
         console.log(nextPrompt)
         setNextPair([...inoutpair,[thePrompt, nextPromptID, chatid,  sessionHistory['bot']]])
         setNextPromptID(nextPromptID+1)
 
     }
-    console.log('here is the debug output')
+
+    console.log('here is the debug output in indichat '+chatid)
     console.log(inoutpair)
     return (
         <div>
         {inoutpair.map(([theprompt, thepromptid, currentchatid,  botids])=>(
-        <div key={thepromptid}>
-            <PromptComp  thisprompt={theprompt}/>
-
+        <div key={chatid+'_'+thepromptid}>
+            <PromptComp key={chatid+'_'+thepromptid} thisprompt={theprompt}/>
+            {console.log('populating bots botids is:'+botids)}
+            {console.log('still in the populating process',theprompt, thepromptid, currentchatid,  botids)}
             {botids.map((thebotid)=>(
-                <ResponseComp key={thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={currentchatid} nextprmoptid={nextPromptID}  />
+                <ResponseComp  key={chatid+'_'+thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={chatid} nextprmoptid={nextPromptID} signal={controller ? controller.signal : null} />
             ))}
         
         
@@ -166,3 +206,5 @@ function IndiChatComp({chatid=2}){
     ))}
     <InputComp generatePrompt={collectNextPrompt} /></div>
 )
+
+}
