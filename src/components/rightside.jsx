@@ -8,7 +8,7 @@ const sessionHistory = {// on app open, pull from server for previous chat histo
         2:{nextprmoptid:1, chathistory:{0:{promptcontent:'Have we met before', botresponse:{2:['I do not know what you are talking about'], 4:['no, cuz I am you']}}}},
 
     },
-    bot:[0,2],
+    bot:[],
     thischat:0
 }
 const botmethod = {
@@ -141,42 +141,7 @@ function PromptComp({thisprompt=''}){
 }
 
 
-function IndiChatComp({chatid}){
+function IndiChatComp({chatid, setSelectedChat}){
     console.log(sessionHistory)
     //var nextPromptID = 0
     const [nextPromptID, setNextPromptID] = React.useState(sessionHistory['chat'][chatid]['nextprmoptid'])
-    const [nextPrompt, setNextPrompt] = React.useState('')
-    const [inoutpair, setNextPair] = React.useState(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid,  Object.keys(value['botresponse'])]))
-
-    const collectNextPrompt=(thePrompt)=>{
-        setNextPrompt(thePrompt)
-        let temp_nextPrompt = {promptcontent: thePrompt, botresponse:sessionHistory['bot'].reduce((acc, key) => ({ ...acc, [key]: [] }), {})}
-        sessionHistory['chat'][chatid]['chathistory'][nextPromptID] = temp_nextPrompt
-        sessionHistory['chat'][chatid]['nextprmoptid'] = nextPromptID+1
-        console.log("the next prompt: "+thePrompt)
-        console.log(nextPrompt)
-        setNextPair([...inoutpair,[thePrompt, nextPromptID, chatid,  sessionHistory['bot']]])
-        setNextPromptID(nextPromptID+1)
-
-    }
-
-    console.log('here is the debug output in indichat '+chatid)
-    console.log(inoutpair)
-    return (
-        <div>
-        {inoutpair.map(([theprompt, thepromptid, currentchatid,  botids])=>(
-        <div key={chatid+'_'+thepromptid}>
-            <PromptComp key={chatid+'_'+thepromptid} thisprompt={theprompt}/>
-            {console.log('populating bots botids is:'+botids)}
-            {console.log('still in the populating process',theprompt, thepromptid, currentchatid,  botids)}
-            {botids.map((thebotid)=>(
-                <ResponseComp  key={chatid+'_'+thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={chatid} nextprmoptid={nextPromptID} />
-            ))}
-        
-        
-        </div>
-    ))}
-    <InputComp generatePrompt={collectNextPrompt} /></div>
-)
-
-}
