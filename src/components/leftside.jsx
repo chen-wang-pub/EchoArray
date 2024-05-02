@@ -153,8 +153,8 @@ function RootComp(){
 
     return (
         <div style={{display:'flex'}}>
-            <SideSection selectedChat={selectedChat} setSelectedChat={selectChat}/>
-            <IndiChatComp key={uuid} chatid={selectedChat}/>
+            <SideSection key={'side'+uuid} selectedChat={selectedChat} setSelectedChat={selectChat}/>
+            <IndiChatComp key={'indi'+uuid} chatid={selectedChat} setSelectedChat={selectChat} />
 
         </div>
     )
