@@ -145,3 +145,48 @@ function IndiChatComp({chatid, setSelectedChat}){
     console.log(sessionHistory)
     //var nextPromptID = 0
     const [nextPromptID, setNextPromptID] = React.useState(sessionHistory['chat'][chatid]['nextprmoptid'])
+    const [inoutpair, setNextPair] = React.useState(Object.entries(sessionHistory['chat'][chatid]['chathistory']).map(([key, value])=>[value['promptcontent'], key, chatid,  Object.keys(value['botresponse'])]))
+
+    const collectNextPrompt=(thePrompt)=>{
+        let temp_nextPrompt = {promptcontent: thePrompt, botresponse:sessionHistory['bot'].reduce((acc, key) => ({ ...acc, [key]: [] }), {})}
+
+        if (chatid===0){
+            let newchatid = Math.max(...Object.keys(sessionHistory['chat']).map((e)=>parseInt(e)))+1
+            sessionHistory['chat'][newchatid] = {nextprmoptid:0, chathistory:{}}
+            sessionHistory['chat'][newchatid]['chathistory'][nextPromptID] = temp_nextPrompt
+            sessionHistory['chat'][newchatid]['nextprmoptid'] = nextPromptID+1
+            console.log("generating new chat with chatid: "+newchatid)      
+            setSelectedChat(newchatid)
+        }
+        else{
+            sessionHistory['chat'][chatid]['chathistory'][nextPromptID] = temp_nextPrompt
+            sessionHistory['chat'][chatid]['nextprmoptid'] = nextPromptID+1
+            console.log("the next prompt: "+thePrompt)
+            console.log('after a new prompt is input: '+[thePrompt, nextPromptID, chatid,  sessionHistory['bot']])
+            setNextPair([...inoutpair,[thePrompt, nextPromptID, chatid, sessionHistory['bot'])]])
+            setNextPromptID(nextPromptID+1)
+        }
+    }
+//{apromptid, abotid, chatid, nextprmoptid}
+    console.log('here is the debug output in indichat '+chatid)
+    console.log(inoutpair)
+    return (
+        <div>
+        {inoutpair.map(([theprompt, thepromptid, currentchatid,  botids])=>(
+        <div key={chatid+'_'+thepromptid}>
+            <PromptComp key={chatid+'_'+thepromptid} thisprompt={theprompt}/>
+            {console.log('populating bots botids is:'+botids)}
+            {console.log('still in the populating process',theprompt, thepromptid, currentchatid,  botids)}
+            {botids.map((thebotid)=>{console.log('just populated bot id:'+thebotid)
+            return (
+                
+                <ResponseComp  key={chatid+'_'+thepromptid+'_'+thebotid} apromptid={thepromptid} abotid={thebotid} chatid={chatid} nextprmoptid={nextPromptID} />
+            )})}
+        
+        
+        </div>
+    ))}
+    <InputComp generatePrompt={collectNextPrompt} /></div>
+)
+
+}
