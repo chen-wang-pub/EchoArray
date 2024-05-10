@@ -163,7 +163,7 @@ function IndiChatComp({chatid, setSelectedChat}){
             sessionHistory['chat'][chatid]['nextprmoptid'] = nextPromptID+1
             console.log("the next prompt: "+thePrompt)
             console.log('after a new prompt is input: '+[thePrompt, nextPromptID, chatid,  sessionHistory['bot']])
-            setNextPair([...inoutpair,[thePrompt, nextPromptID, chatid, sessionHistory['bot'])]])
+            setNextPair([...inoutpair,[thePrompt, nextPromptID, chatid,  Array.from(sessionHistory['bot'])]]) //sessionHistory['bot'])]])  //<---- this caused error cause array is used by reference. The initialization created a brand new array, but future prompt are using the same bot array, when a new bot is added after a new prompt, null reference error is triggered
             setNextPromptID(nextPromptID+1)
         }
     }
