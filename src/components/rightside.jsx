@@ -12,9 +12,110 @@ const sessionHistory = {// on app open, pull from server for previous chat histo
     thischat:0
 }
 const botmethod = {
-    0:{name:'goobot',apikey:''},
-    1:{name:'opebot',apikey:''},
-    2:{name:'clabot',apikey:''},
+    0:{name:'goobot',apikey:'', apicall:async (apikey, prompt="hit me with a joke", partial_result, update_func) => {
+        const apiKey = apikey;  // Caution: Exposing API keys client-side is risky.
+        const model = 'gemini-pro';    // Choose your model appropriately.
+    
+        try {
+            
+            const response = await fetch('https://cors-anywhere.herokuapp.com/https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key='+apikey, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    contents: [{ "role": "user", "parts": [{'text':prompt}] }],
+                })
+            });
+            
+            const data = await response.json();
+            if (!response.ok) {
+                console.error('HTTP Error:', response.status, JSON.stringify(data));
+                throw new Error('HTTP error! Status: ' + response.status);
+            }
+    
+            console.log(data);
+    
+    
+            let final_response = partial_result + JSON.stringify(data)
+            update_func(final_response)
+            //return data;
+        } catch (error) {
+            console.error('Request failed:', error);
+        }
+    }},
+    1:{name:'opebot',apikey:'', apicall:async (apikey, prompt="hit me with a joke", partial_result, update_func) => {
+        const apiKey = apikey;  // Caution: Exposing API keys client-side is risky.
+        const model = 'gpt-3.5-turbo';    // Choose your model appropriately.
+    
+        try {
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [{ "role": "user", "content": prompt }],
+                    max_tokens: 50
+                })
+            });
+            
+            const data = await response.json();
+            if (!response.ok) {
+                console.error('HTTP Error:', response.status, JSON.stringify(data));
+                throw new Error('HTTP error! Status: ' + response.status);
+            }
+    
+            console.log(data);
+
+
+            let final_response = partial_result + JSON.stringify(data)
+            update_func(final_response)
+            //return data;
+        } catch (error) {
+            console.error('Request failed:', error);
+        }
+    }},
+    2:{name:'clabot',apikey:'',apicall:async (apikey, prompt="hit me with a joke", partial_result, update_func) => {
+        const apiKey = apikey;  // Caution: Exposing API keys client-side is risky.
+        const model = 'claude-3-haiku-20240307';    // Choose your model appropriately.
+    
+        try {
+            
+            const response = await fetch('https://cors-anywhere.herokuapp.com/https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    "anthropic-version": "2023-06-01",
+                    'Content-Type': 'application/json',
+                    'x-api-key': `${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [{ "role": "user", "content": prompt }],
+                    max_tokens: 50
+                })
+            });
+            
+            const data = await response.json();
+            if (!response.ok) {
+                console.error('HTTP Error:', response.status, JSON.stringify(data));
+                throw new Error('HTTP error! Status: ' + response.status);
+            }
+    
+            console.log(data);
+    
+    
+            let final_response = partial_result + JSON.stringify(data)
+            update_func(final_response)
+            //return data;
+        } catch (error) {
+            console.error('Request failed:', error);
+        }
+    }},
     3:{name:'metbot',apikey:''},
     4:{name:'cusbot',apikey:''}
 }
@@ -44,47 +145,43 @@ function ResponseComp({apromptid, abotid, chatid, nextprmoptid}){
         else if (content === 'Analyzing...'){
             setContent('Analyzing...')
             sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push('generating new response')
-            const timer = setTimeout(() => {
-                    setContent('10 seconds have passed!');
-                    let prompt = sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']
-                    let result = 'response from bot '+botmethod[abotid]['name']+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
+            if (parseInt(abotid)===0 || parseInt(abotid)===1 || parseInt(abotid)===2){
+                let prompt = sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']
+                let partial_result = 'response from bot '+botmethod[abotid]['name']+' for prompt ' +prompt+'  prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid + ' response:'
+                botmethod[abotid]['apicall'](botmethod[abotid]['apikey'], prompt, partial_result, (finalresponse)=>{
                     sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].pop()
-                    sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push(result)
-                    setContent(result)
-                    console.log('from asnyc:  '+result)
-                }, 10000);  // 10000 milliseconds = 10 seconds
-        
-                // Cleanup function to clear the timeout if the component unmounts early
-            return () => {
-                clearTimeout(timer)
-                console.log('aborted in'+ 'response from bot '+botmethod[abotid]['name']+' for prompt ' +sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid)
+                    sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push(finalresponse)
+                    setContent(finalresponse)
+                })
+                
+            }
+            else{
+                const timer = setTimeout(() => {
+                        setContent('10 seconds have passed!');
+                        let prompt = sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']
+                        let result = 'response from bot '+botmethod[abotid]['name']+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
+                        sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].pop()
+                        sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].push(result)
+                        setContent(result)
+                        console.log('from asnyc:  '+result)
+                    }, 2000);  // 10000 milliseconds = 10 seconds
+            
+                    // Cleanup function to clear the timeout if the component unmounts early
+                return () => {
+                    clearTimeout(timer)
+                    console.log('aborted in'+ 'response from bot '+botmethod[abotid]['name']+' for prompt ' +sessionHistory['chat'][chatid]['chathistory'][apromptid]['promptcontent']+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid)
+                }
             }
         }
 
     }, [content]) // Empty dependency array means this effect runs only once after the initial render
      
-    /*function generateContent(){
-        if (content != 'Analyzing...'){
-            React.useEffect(() => {
-            setContent('Analyzing...')
-            const timer = setTimeout(() => {
-                setContent('10 seconds have passed!');
-                let prompt = sessionHistory['chat'][chatid]['chathistory']['promptcontent']
-                let result = 'response from bot '+botmethod[abotid]+' for prompt ' +prompt+' is bbbbbbbbbbbbb prompid: ' + apromptid+ ' botid: ' + abotid + " chatid: "+chatid+ ' nextpromptid: ' + nextprmoptid
-                sessionHistory['chat'][chatid]['chathistory']['botresponse'][abotid].push(result)
-                setContent(result)
-            }, 10000);  // 10000 milliseconds = 10 seconds
-    
-            // Cleanup function to clear the timeout if the component unmounts early
-            return () => clearTimeout(timer);
-        }, []) // Empty dependency array means this effect runs only once after the initial render
-        }
 
-    }*/
     //console.log('bot id:'+abotid)
     //console.log(content)
     //console.log(sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid].length)
     //console.log(sessionHistory['chat'][chatid]['chathistory'][apromptid]['botresponse'][abotid])
+    console.log('currently rendering '+[apromptid, abotid, chatid, nextprmoptid])
     let responseMarkup = <p>{content}</p>
     if (apromptid == nextprmoptid - 1){
         responseMarkup = (
